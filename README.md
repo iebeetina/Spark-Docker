@@ -1,6 +1,4 @@
-# CEBD 1261 Final Project
 
-Prepared by:<br>Ieva Betina<br>William Acosta
 
 ## Table of Contents
 * [Create the cluster using Docker Swarm](#createcluster)
