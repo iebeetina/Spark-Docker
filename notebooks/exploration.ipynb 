@@ -1,0 +1,1072 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from pyspark.context import SparkContext\n",
+    "from pyspark.sql.session import SparkSession\n",
+    "sc = SparkContext('local')\n",
+    "spark = SparkSession(sc)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from pyspark.sql.types import (StructField, StringType,\n",
+    "                               IntegerType, TimestampType,\n",
+    "                               FloatType, StructType)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "data_schema = [StructField('LCLid', StringType(), True),\n",
+    "              StructField('stdorToU', StringType(), True),\n",
+    "              StructField('DateTime', TimestampType(), True),\n",
+    "              StructField('KWH_per_hh_per_30min', FloatType(), True),\n",
+    "              StructField('Acorn', StringType(), True),\n",
+    "              StructField('Acorn_grouped', StringType(), True)]\n",
+    "\n",
+    "final_struc = StructType(fields=data_schema)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "power = spark.read.csv('data/Power-Networks-LCL-June2015(withAcornGps)v2_1.csv', schema=final_struc, header=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "root\n",
+      " |-- LCLid: string (nullable = true)\n",
+      " |-- stdorToU: string (nullable = true)\n",
+      " |-- DateTime: timestamp (nullable = true)\n",
+      " |-- KWH_per_hh_per_30min: float (nullable = true)\n",
+      " |-- Acorn: string (nullable = true)\n",
+      " |-- Acorn_grouped: string (nullable = true)\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "power.printSchema()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "1000000"
+      ]
+     },
+     "execution_count": 11,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "power.count()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "The total number of rows is: 1000000 \n",
+      "The total number of columns is: 6\n"
+     ]
+    }
+   ],
+   "source": [
+    "print('The total number of rows is:', power.count(), '\\nThe total number of columns is:', len(power.columns))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "|    LCLid|stdorToU|           DateTime|KWH_per_hh_per_30min|  Acorn|Acorn_grouped|\n",
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "|MAC000002|     Std|2012-10-12 00:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 01:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 01:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 02:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 02:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 03:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 03:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 04:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 04:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 05:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 05:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 06:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 06:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 07:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 07:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 08:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 08:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 09:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 09:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 10:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 10:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 11:30:00|               0.143|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 12:00:00|               0.663|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 12:30:00|               0.256|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 13:00:00|               0.155|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 13:30:00|               0.199|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 14:00:00|               0.125|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 14:30:00|               0.165|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 15:00:00|                0.14|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 15:30:00|               0.148|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 16:00:00|               0.154|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 16:30:00|               0.137|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 17:00:00|               0.493|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 17:30:00|               0.354|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 18:00:00|               0.228|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 18:30:00|               0.195|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 19:00:00|               0.527|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 19:30:00|               0.886|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 20:00:00|               0.198|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 20:30:00|               0.243|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 21:00:00|               0.193|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 21:30:00|               0.342|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 22:00:00|                0.27|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 22:30:00|               0.325|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 23:00:00|               0.269|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 23:30:00|                0.29|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-13 00:00:00|               0.263|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-13 00:30:00|               0.269|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-13 01:00:00|               0.275|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-13 01:30:00|               0.256|ACORN-A|     Affluent|\n",
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "only showing top 50 rows\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "power.show(50)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[Row(LCLid='MAC000002', stdorToU='Std', DateTime=datetime.datetime(2012, 10, 12, 0, 30), KWH_per_hh_per_30min=0.0, Acorn='ACORN-A', Acorn_grouped='Affluent'),\n",
+       " Row(LCLid='MAC000002', stdorToU='Std', DateTime=datetime.datetime(2012, 10, 12, 1, 0), KWH_per_hh_per_30min=0.0, Acorn='ACORN-A', Acorn_grouped='Affluent')]"
+      ]
+     },
+     "execution_count": 7,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "power.head(2)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## create new month column\n",
+    "not saved unless saved as a new dataframe"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "__all__ = [\n",
+    "    \"DataType\", \"NullType\", \"StringType\", \"BinaryType\", \"BooleanType\", \"DateType\",\n",
+    "    \"TimestampType\", \"DecimalType\", \"DoubleType\", \"FloatType\", \"ByteType\", \"IntegerType\",\n",
+    "    \"LongType\", \"ShortType\", \"ArrayType\", \"MapType\", \"StructField\", \"StructType\"]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from pyspark.sql.functions import (dayofmonth, hour, \n",
+    "                                   dayofyear, month, \n",
+    "                                   year, weekofyear, \n",
+    "                                   format_number, date_format)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+---------+--------+-------------------+--------------------+-------+-------------+-----+\n",
+      "|    LCLid|stdorToU|           DateTime|KWH_per_hh_per_30min|  Acorn|Acorn_grouped|Month|\n",
+      "+---------+--------+-------------------+--------------------+-------+-------------+-----+\n",
+      "|MAC000002|     Std|2012-10-12 00:30:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 01:00:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 01:30:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 02:00:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 02:30:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 03:00:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 03:30:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 04:00:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 04:30:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 05:00:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 05:30:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 06:00:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 06:30:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 07:00:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 07:30:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 08:00:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 08:30:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 09:00:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 09:30:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "|MAC000002|     Std|2012-10-12 10:00:00|                 0.0|ACORN-A|     Affluent|   10|\n",
+      "+---------+--------+-------------------+--------------------+-------+-------------+-----+\n",
+      "only showing top 20 rows\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "power.withColumn('Month', month(power['DateTime'])).show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+--------------------+\n",
+      "|dayofmonth(DateTime)|\n",
+      "+--------------------+\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "|                  12|\n",
+      "+--------------------+\n",
+      "only showing top 20 rows\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "power.select(dayofmonth(power['DateTime'])).show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+--------------+\n",
+      "|hour(DateTime)|\n",
+      "+--------------+\n",
+      "|             0|\n",
+      "|             1|\n",
+      "|             1|\n",
+      "|             2|\n",
+      "|             2|\n",
+      "|             3|\n",
+      "|             3|\n",
+      "|             4|\n",
+      "|             4|\n",
+      "|             5|\n",
+      "|             5|\n",
+      "|             6|\n",
+      "|             6|\n",
+      "|             7|\n",
+      "|             7|\n",
+      "|             8|\n",
+      "|             8|\n",
+      "|             9|\n",
+      "|             9|\n",
+      "|            10|\n",
+      "+--------------+\n",
+      "only showing top 20 rows\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "power.select(hour(power['DateTime'])).show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### sparksql queries"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "power.createOrReplaceTempView('consumption')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+-------------+------------------+\n",
+      "|Acorn_grouped|          TotalKWH|\n",
+      "+-------------+------------------+\n",
+      "|     Affluent|122676.58302195533|\n",
+      "|    Adversity|  64406.0420303538|\n",
+      "|  Comfortable| 40821.95700398274|\n",
+      "|      ACORN-U|11668.203004127368|\n",
+      "|         null|              null|\n",
+      "+-------------+------------------+\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "spark.sql(\n",
+    "'''\n",
+    "SELECT Acorn_grouped, SUM(KWH_per_hh_per_30min) as TotalKWH FROM consumption\n",
+    "GROUP BY Acorn_grouped\n",
+    "ORDER BY TotalKWH DESC\n",
+    "'''\n",
+    ").show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 30,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas as pd \n",
+    "import numpy\n",
+    "import matplotlib.pyplot as plt\n",
+    "import seaborn as sns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 720x432 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "plot_df = spark.sql(\n",
+    "'''\n",
+    "SELECT Acorn_grouped, SUM(KWH_per_hh_per_30min) as TotalKWH FROM consumption\n",
+    "GROUP BY Acorn_grouped\n",
+    "ORDER BY TotalKWH DESC\n",
+    "'''\n",
+    ").toPandas()\n",
+    "\n",
+    "fig,ax = plt.subplots(1,1,figsize=(10,6))\n",
+    "plot_df.plot(x = 'Acorn_grouped', y = 'TotalKWH', kind = 'barh', color = 'C0', ax = ax, legend = False)\n",
+    "ax.set_xlabel('Total', size = 16)\n",
+    "ax.set_ylabel('Acorn_grouped', size = 16)\n",
+    "# plt.savefig('barplot.png')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### filter by one condition using sql like notation"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "36633"
+      ]
+     },
+     "execution_count": 18,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "power.filter('KWH_per_hh_per_30min > 1').count()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "|    LCLid|stdorToU|           DateTime|KWH_per_hh_per_30min|  Acorn|Acorn_grouped|\n",
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "|MAC000002|     Std|2012-10-14 18:30:00|               1.085|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-14 19:00:00|               1.075|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-15 08:30:00|               1.075|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-15 19:00:00|               1.164|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-20 18:00:00|               1.453|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-21 18:00:00|               1.285|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-21 18:30:00|                2.16|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-22 19:00:00|               1.126|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-24 19:00:00|               1.889|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-27 19:30:00|               1.228|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-28 20:00:00|                1.16|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-28 20:30:00|               1.109|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-28 21:30:00|               1.037|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-28 23:00:00|               1.173|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-29 14:00:00|               1.012|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-29 20:00:00|               1.058|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-31 11:00:00|               1.437|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-31 21:30:00|               1.445|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-11-02 14:00:00|               1.284|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-11-03 20:00:00|               1.137|ACORN-A|     Affluent|\n",
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "only showing top 20 rows\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "power.filter('KWH_per_hh_per_30min > 1').show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### filter by one condition"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "|    LCLid|stdorToU|           DateTime|KWH_per_hh_per_30min|  Acorn|Acorn_grouped|\n",
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "|MAC000002|     Std|2012-10-14 18:30:00|               1.085|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-14 19:00:00|               1.075|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-15 08:30:00|               1.075|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-15 19:00:00|               1.164|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-20 18:00:00|               1.453|ACORN-A|     Affluent|\n",
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "only showing top 5 rows\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "power.filter(power['KWH_per_hh_per_30min'] > 1).show(5)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### filter by one condition and select columns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+---------+--------------------+-------------+\n",
+      "|    LCLid|KWH_per_hh_per_30min|Acorn_grouped|\n",
+      "+---------+--------------------+-------------+\n",
+      "|MAC000002|                2.16|     Affluent|\n",
+      "|MAC000002|               2.887|     Affluent|\n",
+      "|MAC000002|               2.994|     Affluent|\n",
+      "|MAC000002|               2.524|     Affluent|\n",
+      "|MAC000002|               2.256|     Affluent|\n",
+      "+---------+--------------------+-------------+\n",
+      "only showing top 5 rows\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "power.filter(power['KWH_per_hh_per_30min'] > 2).select(['LCLid', 'KWH_per_hh_per_30min', 'Acorn_grouped']).show(5)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### filter by multiple conditions"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "|    LCLid|stdorToU|           DateTime|KWH_per_hh_per_30min|  Acorn|Acorn_grouped|\n",
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "|MAC000003|     Std|2012-02-21 00:30:00|               3.379|ACORN-P|    Adversity|\n",
+      "|MAC000003|     Std|2012-02-21 01:00:00|               3.148|ACORN-P|    Adversity|\n",
+      "|MAC000003|     Std|2012-02-21 01:30:00|               3.277|ACORN-P|    Adversity|\n",
+      "|MAC000003|     Std|2012-02-21 02:00:00|               2.568|ACORN-P|    Adversity|\n",
+      "|MAC000003|     Std|2012-02-21 02:30:00|               2.146|ACORN-P|    Adversity|\n",
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "only showing top 5 rows\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "power.filter((power['KWH_per_hh_per_30min'] > 1) & (power['Acorn_grouped'] == 'Adversity')).show(5)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Groupby"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+---------+-------------------------+\n",
+      "|    LCLid|avg(KWH_per_hh_per_30min)|\n",
+      "+---------+-------------------------+\n",
+      "|MAC000032|       0.2675444865053343|\n",
+      "|MAC000022|       0.2614754934328884|\n",
+      "|MAC000020|      0.13675290458601197|\n",
+      "|MAC000009|      0.17890284110045027|\n",
+      "|MAC000018|       0.2238542259376987|\n",
+      "|MAC000027|      0.18666494323808047|\n",
+      "|     null|                     null|\n",
+      "|MAC000035|       0.4734078876610596|\n",
+      "|MAC000029|      0.07076965419289974|\n",
+      "|MAC000028|      0.10019040968613595|\n",
+      "|MAC000034|       0.5668212137395978|\n",
+      "|MAC000030|      0.23749462457642936|\n",
+      "|MAC000011|       0.3142988947884928|\n",
+      "|MAC000033|      0.15773639632553427|\n",
+      "|MAC000007|      0.19780463159201828|\n",
+      "|MAC000012|     0.044056508248345554|\n",
+      "|MAC000036|     0.057406429766254125|\n",
+      "|MAC000008|       0.3631019144413949|\n",
+      "|MAC000016|      0.02735071454767778|\n",
+      "|MAC000002|      0.25256190752827157|\n",
+      "+---------+-------------------------+\n",
+      "only showing top 20 rows\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "power.groupBy('LCLid').mean().show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 24,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+---------+-------------------------+\n",
+      "|    LCLid|sum(KWH_per_hh_per_30min)|\n",
+      "+---------+-------------------------+\n",
+      "|MAC000032|       10452.427998790401|\n",
+      "|MAC000022|       10216.109003916383|\n",
+      "|MAC000020|        5344.030005412176|\n",
+      "|MAC000009|        4514.971000852063|\n",
+      "|MAC000018|        8748.447003871202|\n",
+      "|MAC000027|        7292.626002425328|\n",
+      "|     null|                     null|\n",
+      "|MAC000035|        18473.79600019753|\n",
+      "|MAC000029|       2764.4750017372426|\n",
+      "|MAC000028|        3221.823004277074|\n",
+      "|MAC000034|        22145.13799959235|\n",
+      "|MAC000030|         9277.96500370279|\n",
+      "|MAC000011|        7450.141002066433|\n",
+      "|MAC000033|        6162.761004438624|\n",
+      "|MAC000007|        4954.016998222098|\n",
+      "|MAC000012|       1086.8300019784365|\n",
+      "|MAC000036|        928.5490014691604|\n",
+      "|MAC000008|        9445.006998449564|\n",
+      "|MAC000016|        533.9680001143133|\n",
+      "|MAC000002|        6101.138000160456|\n",
+      "+---------+-------------------------+\n",
+      "only showing top 20 rows\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "power.groupBy('LCLid').sum().show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### aggregate\n",
+    "get sum of all KWH used"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 25,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+-------------------------+\n",
+      "|sum(KWH_per_hh_per_30min)|\n",
+      "+-------------------------+\n",
+      "|       239572.78506041924|\n",
+      "+-------------------------+\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "power.agg({'KWH_per_hh_per_30min':'sum'}).show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# sort"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 26,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "|    LCLid|stdorToU|           DateTime|KWH_per_hh_per_30min|  Acorn|Acorn_grouped|\n",
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "|MAC000034|     Std|2013-02-13 00:00:00|               6.528|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2014-01-28 00:00:00|                6.51|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2014-01-28 00:00:00|                6.51|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2012-03-06 00:30:00|               6.395|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2012-02-03 00:30:00|               6.381|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2012-02-10 00:30:00|               6.375|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2012-02-11 00:30:00|               6.368|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2012-02-04 00:30:00|               6.359|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2014-01-21 00:00:00|               6.354|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2012-02-07 00:30:00|               6.351|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2012-02-03 01:00:00|               6.346|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2014-01-26 00:00:00|                6.34|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2012-02-08 00:30:00|               6.338|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2013-12-31 00:00:00|               6.338|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2012-02-01 00:30:00|               6.338|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2012-02-12 00:30:00|               6.333|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2012-02-05 00:30:00|               6.331|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2012-01-18 00:30:00|               6.328|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2012-02-09 00:30:00|               6.301|ACORN-E|     Affluent|\n",
+      "|MAC000034|     Std|2012-01-23 00:30:00|                 6.3|ACORN-E|     Affluent|\n",
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "only showing top 20 rows\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "power.orderBy(power['KWH_per_hh_per_30min'].desc()).show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 27,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "|    LCLid|stdorToU|           DateTime|KWH_per_hh_per_30min|  Acorn|Acorn_grouped|\n",
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|     null|    null|               null|                null|   null|         null|\n",
+      "|MAC000004|     Std|2012-05-08 14:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-08 15:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 01:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 02:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-08 18:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-08 21:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-10 17:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-08 16:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-08 16:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 06:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-08 19:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 10:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-08 22:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 15:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-08 14:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 05:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 03:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 04:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-08 17:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 05:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-08 19:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 08:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-08 20:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-08 13:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-08 21:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 14:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-10 16:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-08 13:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 17:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 03:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 18:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 07:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 09:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 01:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 00:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 01:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 02:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 05:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 23:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 06:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 08:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 07:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 10:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 11:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 12:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 09:00:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-10 04:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 02:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 06:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000002|     Std|2012-10-12 00:30:00|                 0.0|ACORN-A|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 15:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 16:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 17:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 19:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 19:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 20:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 20:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 21:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 22:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 03:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 22:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 23:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-10 00:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 09:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-10 01:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-10 01:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-10 02:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-10 02:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-09 14:00:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-10 03:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "|MAC000004|     Std|2012-05-10 04:30:00|                 0.0|ACORN-E|     Affluent|\n",
+      "+---------+--------+-------------------+--------------------+-------+-------------+\n",
+      "only showing top 100 rows\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "power.orderBy('KWH_per_hh_per_30min').show(100)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Why are there nulls? Turns out the nulls exist in the excel file. We can drop them"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 32,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from pyspark.sql import *\n",
+    "from pyspark.sql.functions import col"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 33,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+-----+--------+--------+--------------------+-----+-------------+\n",
+      "|LCLid|stdorToU|DateTime|KWH_per_hh_per_30min|Acorn|Acorn_grouped|\n",
+      "+-----+--------+--------+--------------------+-----+-------------+\n",
+      "| null|    null|    null|                null| null|         null|\n",
+      "| null|    null|    null|                null| null|         null|\n",
+      "| null|    null|    null|                null| null|         null|\n",
+      "| null|    null|    null|                null| null|         null|\n",
+      "| null|    null|    null|                null| null|         null|\n",
+      "+-----+--------+--------+--------------------+-----+-------------+\n",
+      "only showing top 5 rows\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "# alternate way of looking at nulls using col function\n",
+    "power.where(col('KWH_per_hh_per_30min').isNull()).show(5)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 34,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "1000000"
+      ]
+     },
+     "execution_count": 34,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "power.count()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 35,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# will be dropped if not at least 2 non-null values in row\n",
+    "# power.na.drop(thresh=2)\n",
+    "# default is drop the whole row if any values are null\n",
+    "# power.na.drop(how=any)\n",
+    "# drop row only if all columns in it are null\n",
+    "# power.na.drop(how=all)\n",
+    "# drop only if the subset rows are null\n",
+    "# df.na.drop(subset=['KWH_per_hh_per_30min'])\n",
+    "power = power.na.drop()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 36,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "999971"
+      ]
+     },
+     "execution_count": 36,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "power.count()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 37,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "+-----+--------+--------+--------------------+-----+-------------+\n",
+      "|LCLid|stdorToU|DateTime|KWH_per_hh_per_30min|Acorn|Acorn_grouped|\n",
+      "+-----+--------+--------+--------------------+-----+-------------+\n",
+      "+-----+--------+--------+--------------------+-----+-------------+\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "power.where(col('KWH_per_hh_per_30min').isNull()).show(100)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}

@@ -1,0 +1,35 @@
+Copy the file into the volume for testing using busy box hack. 68 MB
+
+ieva_william/data/power_1.csv
+
+docker run --rm -v "$(pwd)"/data:/data -v jupyter-data:/volume busybox cp -r /data/ /volume
+
+docker stack deploy --compose-file=stack-spark.yml spark
+
+
+Read the csv from a volume and write to HDFS
+
+docker run -it --rm \
+    -v "$(pwd)"/script:/usr/spark-2.4.1/volume/script \
+    -v jupyter-data:/usr/spark-2.4.1/volume \
+    --network=spark-network \
+    mjhea0/spark:2.4.1 bin/spark-submit \
+    --master spark://master:7077 \
+    --class endpoint \
+    /usr/spark-2.4.1/volume/script/write_hdfs.py
+
+THE ABOVE WORKS!
+
+Read from csv from a volume and write to MongoDB
+
+docker run -t --rm -v "$(pwd)"/script:/usr/spark-2.4.1/volume/script \
+  -v jupyter-data:/usr/spark-2.4.1/volume \
+  --network=spark-network \
+  mjhea0/spark:2.4.1 \
+  bin/spark-submit \
+    --master spark://master:7077 \
+    --class endpoint \
+    --packages org.mongodb.spark:mongo-spark-connector_2.11:2.4.0 \
+    /usr/spark-2.4.1/volume/script/mongodb.py
+
+THE ABOVE CODE DIDN’T FULLY WORK AND DIDN’T WRITE TO MONGO BECAUSE IT COULDN’T CAST A DATATYPE TO BSON. WILL EXPLORE FURTHER

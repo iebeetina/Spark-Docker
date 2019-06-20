@@ -1,0 +1,163 @@
+Read the file from csv and save it to hdfs
+
+docker run -it --rm \
+    -v "$(pwd)"/script:/usr/spark-2.4.1/volume/script \
+    -v jupyter-data:/usr/spark-2.4.1/volume \
+    --network=spark-network \
+    mjhea0/spark:2.4.1 bin/spark-submit \
+    --master spark://master:7077 \
+    --class endpoint \
+    /usr/spark-2.4.1/volume/script/write_hdfs2.py
+
+This works but in the script I don’t use header = true so the file is saved with made up headers
+
+If I use header=true the blank in the column throws an error
+
+
+To remove files from hdfs
+
+docker exec -it $(docker ps --filter name=master --format "{{.ID}}") hdfs dfs -rm -r hdfs://hadoop:8020/data/power/
+
+
+docker run -it --rm \
+    -v "$(pwd)"/script:/usr/spark-2.4.1/volume/script \
+    -v jupyter-data:/usr/spark-2.4.1/volume \
+    --network=spark-network \
+    mjhea0/spark:2.4.1 bin/spark-submit \
+    --master spark://master:7077 \
+    --class endpoint \
+    /usr/spark-2.4.1/volume/script/write_hdfs3.py
+
+ThIS WORKED AND GOT THE HEADERS RIGHT AND SCHEMA RIGHT. NOW TEST IF IT WORKS ON MONGO
+
+CSV to mongo via spark
+
+docker run -t --rm -v "$(pwd)"/script:/usr/spark-2.4.1/volume/script \
+  -v jupyter-data:/usr/spark-2.4.1/volume \
+  --network=spark-network \
+  mjhea0/spark:2.4.1 \
+  bin/spark-submit \
+    --master spark://master:7077 \
+    --class endpoint \
+    --packages org.mongodb.spark:mongo-spark-connector_2.11:2.4.0 \
+    /usr/spark-2.4.1/volume/script/mongodb2.py
+
+THIS WORKS AND THE HEADERS ARE ALL CORRECT! THE SCRIPT USES THE DOUBLETYPE INSTEAD OF FLOAT. IT WASN’T WORKING BEFORE BECAUSE THERE IS NO EQUIVALENT DATATYPE TO FLOAT IN BSON.
+https://docs.mongodb.com/spark-connector/master/scala/datasets-and-sql/#datatypes
+
+Read FROM HDFS to spark and then write to mongodb
+
+docker run -t --rm -v "$(pwd)"/script:/usr/spark-2.4.1/volume/script \
+  -v jupyter-data:/usr/spark-2.4.1/volume \
+  --network=spark-network \
+  mjhea0/spark:2.4.1 \
+  bin/spark-submit \
+    --master spark://master:7077 \
+    --class endpoint \
+    --packages org.mongodb.spark:mongo-spark-connector_2.11:2.4.0 \
+    /usr/spark-2.4.1/volume/script/hdfs-mongo.py
+
+THIS SCRIPT WORKS AND ALL THE HEADERS ARE IN TACT!
+
+
+Read from mongo on jupyter
+
+from pyspark.context import SparkContext
+from pyspark.sql.session import SparkSession
+
+spark = SparkSession \
+    .builder \
+    .appName("jupyter") \
+    .master("local") \
+    .config('spark.jars.packages','org.mongodb.spark:mongo-spark-connector_2.11:2.4.0' ) \
+    .config("spark.mongodb.input.uri", "mongodb://root:example@mongo/test.coll?authSource=admin") \
+    .config("spark.mongodb.output.uri", "mongodb://root:example@mongo/test.coll?authSource=admin") \
+    .getOrCreate()
+
+df = spark.read.format("com.mongodb.spark.sql.DefaultSource").load()
+
+
+THIS WORKS!
+
+
+Read from HDFS on Jupyter
+
+df1 = spark.read.parquet('hdfs://hadoop:8020/data/power')
+
+THIS WORKS!
+
+Write results to another Mongo collection named william.nquoi. specify william.nquoi in the config as an output uri
+
+.config("spark.mongodb.output.uri", "mongodb://root:example@mongo/william.nquoi?authSource=admin") \
+
+df1.write.format("com.mongodb.spark.sql.DefaultSource").mode("append").option("database",
+"william").option("collection", "nquoi").save()
+
+https://docs.mongodb.com/spark-connector/master/python/write-to-mongodb/
+
+https://stackoverflow.com/questions/41624850/updating-mongodata-with-mongospark
+
+This works!
+
+COULDN’T SAVE FROM JUPYTER TO HDFS. PERMISSION DENIED
+
+
+
+ENVIRONMENT VARIABLES
+
+See in terminal
+
+env
+
+import os
+
+see all env vars
+
+%env
+
+See env var named pager value
+
+%env PAGER
+
+Set user and password to env vars named pager and language
+
+user = os.environ.get('PAGER')
+password = os.environ.get('LANGUAGE')
+
+Create the mongo env line using concatenation
+
+"mongodb://" + user + ":" + password + "@mongo/test.coll?authSource=admin"
+
+
+
+docker run --rm -it jgoclawski/wget wget https://www.gnu.org/software/wget/
+
+wget https://www.gnu.org/software/wget/ -P volume/
+
+
+
+start a sh session in the wget helper container with a volume attached
+docker run --rm -it -v jupyter-data:/volume jgoclawski/wget sh
+
+wget a file to the volume folder wget https://www.gnu.org/software/wget/ -P volume/
+
+Unzip a file
+unzip sample.zip
+
+unzip a file to directory
+unzip sample.zip -d foldername/
+
+To do two commands at once, wget and unzip. Note that two commands requires a shell and quotes
+
+docker run --rm -v jupyter-data:/volume jgoclawski/wget sh -c "wget https://www.gnu.org/software/wget/ -P volume/; unzip volume/zip_2MB.zip -d volume/"
+
+
+Possible add wget to a dockerfile
+ex
+
+FROM ubuntu:14.04
+RUN  apt-get update \
+  && apt-get install -y wget \
+  && rm -rf /var/lib/apt/lists/*
+
+docker build -t imagename .
